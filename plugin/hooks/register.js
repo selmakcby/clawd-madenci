@@ -19,8 +19,6 @@ let bant = null // { requestId, sutun, satir }
 let cizgi = null // kare zamanlayıcısı
 let kapanis = null
 let ciziliyor = false
-let girdiSayac = { zipla: 0, kaz: 0, koy: 0 }
-let sonBasili = []
 
 function olayEkle(olay) {
   sahne = olayUygula(sahne, olay)
@@ -87,7 +85,7 @@ function dugmeSeridi(Box, Button) {
 }
 
 function bantCiz($, e) {
-  const { Box, Text, Raster, Button, Client } = $.ui.resolve(e)
+  const { Box, Text, Raster, Button } = $.ui.resolve(e)
   if (e.surface !== 'terminal') {
     return Text({ wrap: 'truncate', children: [`⛏ Clawd: ${sahne.balon} · ${sahne.sayac} blok`] })
   }
@@ -95,31 +93,11 @@ function bantCiz($, e) {
   const satir = Math.max(EN_AZ_SATIR, Math.min(SATIR, (e.props.maxRows || SATIR + 1) - 1))
   bant = { requestId: e.requestId, sutun, satir }
   const cells = base64(sahneHucreleri(sahne, sutun, satir))
+  // Raster bandın doğrudan çocuğu kalmalı: üstüne bindirilen Client, blit'li kareleri siliyordu
   return Box({
     flexDirection: 'column',
-    children: [
-      Box({
-        width: sutun, height: satir,
-        children: [
-          Raster({ key: ANAHTAR, columns: sutun, rows: satir, cells }),
-          Box({ position: 'absolute', top: 0, left: 0, children: [Client({ key: 'girdi', module: './girdi.js', width: sutun, height: satir })] }),
-        ],
-      }),
-      dugmeSeridi(Box, Button),
-    ],
+    children: [Raster({ key: ANAHTAR, columns: sutun, rows: satir, cells }), dugmeSeridi(Box, Button)],
   })
-}
-
-// Client'tan gelen paket: sayaç farkları tek seferlik komut, basılı tuşlar sürekli
-function girdiIsle(veri) {
-  if (!veri || typeof veri !== 'object') return
-  const sayac = (k) => (Number.isInteger(veri[k]) && veri[k] >= 0 ? veri[k] : 0)
-  const yeni = { zipla: sayac('zipla'), kaz: sayac('kaz'), koy: sayac('koy') }
-  Object.keys(yeni).filter((k) => yeni[k] > girdiSayac[k]).forEach((k) => olayEkle({ tip: 'oyuncu', komut: k }))
-  girdiSayac = yeni
-  const basili = Array.isArray(veri.basili) ? veri.basili.filter((k) => typeof k === 'string').slice(0, 8) : []
-  if (basili.join() !== sonBasili.join()) olayEkle({ tip: 'tuslar', basili })
-  sonBasili = basili
 }
 
 // Ayarlar kancalarının (PreToolUse/PostToolUse) kopyalarını dinleriz: tool.call içinde next()'i
@@ -189,12 +167,6 @@ export function register(on) {
   on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
     if (!acik || !gorunur) return next(e)
     return bantCiz($, e)
-  })
-
-  on('ui.message', async ($, e, next) => {
-    if (e.element !== 'girdi') return next(e)
-    if (gorunur) girdiIsle(e.data)
-    return {}
   })
 
   on('ui.render', { component: 'Spinner' }, async ($, e, next) => {

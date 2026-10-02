@@ -147,7 +147,6 @@ test('rakam düğmeleri: 1 zıplatır, oyuncu kontrolü balonda görünür', asy
   const { kayit, clock } = kur(on)
   await baslat($)
   const ui = await $.ui.mount({ ...BANT, surface: 'terminal' })
-  expect(await ui.find({ key: 'girdi' })).toBeDefined()
   const dugme = await ui.find({ key: 'oyna-zipla' })
   expect(dugme?.props.hotkey).toBe('1')
   await ui.press({ key: 'oyna-zipla' })

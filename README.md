@@ -13,6 +13,12 @@ Clawd yürür, önüne çıkan blokları kazmayla kırar; Claude ne yapıyorsa s
 | Araç hata döndü | Creeper gelir, Clawd kaçar |
 | Tur bitti | Clawd elmasını kaldırıp el sallar, 2 sn sonra bant kapanır |
 
+## Oyna
+
+Claude çalışırken bandın altında `1: zıpla  2: ←  3: →  4: kaz  5: koy` şeridi var. İstem boşken rakama bas,
+Clawd ~5 sn senin kontrolünde kalır (balon: "Kontrol sende!"), sonra Claude'un araç tepkilerine döner.
+Zıplayınca gerçek yerçekimiyle bir blok üstüne çıkabilir; kazdığın bloklar sayaca eklenir.
+
 Spinner'ın yanında kırılan blok sayacı görünür: `· ⛏ 12 blok`.
 LLM çağırmaz, ağ kullanmaz; arazi tohumlu ve deterministiktir.
 

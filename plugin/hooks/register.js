@@ -21,6 +21,8 @@ let bant = null // { requestId, sutun, satir }
 let cizgi = null // kare zamanlayıcısı
 let kapanis = null
 let ciziliyor = false
+let girdiSayac = { zipla: 0, kaz: 0, koy: 0 }
+let sonBasili = []
 
 function olayEkle(olay) {
   kuyruk = [...kuyruk, olay]
@@ -71,16 +73,58 @@ function gizle($) {
   $.ui.invalidate('ui.render')
 }
 
+const DUGMELER = [
+  { hotkey: '1', label: 'zıpla', komut: 'zipla' },
+  { hotkey: '2', label: '←', komut: 'sol' },
+  { hotkey: '3', label: '→', komut: 'sag' },
+  { hotkey: '4', label: 'kaz', komut: 'kaz' },
+  { hotkey: '5', label: 'koy', komut: 'koy' },
+]
+
+function dugmeSeridi(Box, Button) {
+  return Box({
+    flexDirection: 'row', gap: 2,
+    children: DUGMELER.map((d) => Button({
+      key: `oyna-${d.komut}`, hotkey: d.hotkey, label: d.label, plain: true, dimColor: true,
+      onPress: () => olayEkle({ tip: 'oyuncu', komut: d.komut }),
+    })),
+  })
+}
+
 function bantCiz($, e) {
-  const { Text, Raster } = $.ui.resolve(e)
+  const { Box, Text, Raster, Button, Client } = $.ui.resolve(e)
   if (e.surface !== 'terminal') {
     return Text({ wrap: 'truncate', children: [`⛏ Clawd: ${sahne.balon} · ${sahne.sayac} blok`] })
   }
   const sutun = Math.max(20, Math.min(512, e.props.bodyColumns || 80))
-  const satir = Math.max(EN_AZ_SATIR, Math.min(SATIR, e.props.maxRows || SATIR))
+  const satir = Math.max(EN_AZ_SATIR, Math.min(SATIR, (e.props.maxRows || SATIR + 1) - 1))
   bant = { requestId: e.requestId, sutun, satir }
   const cells = base64(sahneHucreleri(sahne, sutun, satir))
-  return Raster({ key: ANAHTAR, columns: sutun, rows: satir, cells })
+  return Box({
+    flexDirection: 'column',
+    children: [
+      Box({
+        width: sutun, height: satir,
+        children: [
+          Raster({ key: ANAHTAR, columns: sutun, rows: satir, cells }),
+          Box({ position: 'absolute', top: 0, left: 0, children: [Client({ key: 'girdi', module: './girdi.js', width: sutun, height: satir })] }),
+        ],
+      }),
+      dugmeSeridi(Box, Button),
+    ],
+  })
+}
+
+// Client'tan gelen paket: sayaç farkları tek seferlik komut, basılı tuşlar sürekli
+function girdiIsle(veri) {
+  if (!veri || typeof veri !== 'object') return
+  const sayac = (k) => (Number.isInteger(veri[k]) && veri[k] >= 0 ? veri[k] : 0)
+  const yeni = { zipla: sayac('zipla'), kaz: sayac('kaz'), koy: sayac('koy') }
+  Object.keys(yeni).filter((k) => yeni[k] > girdiSayac[k]).forEach((k) => olayEkle({ tip: 'oyuncu', komut: k }))
+  girdiSayac = yeni
+  const basili = Array.isArray(veri.basili) ? veri.basili.filter((k) => typeof k === 'string').slice(0, 8) : []
+  if (basili.join() !== sonBasili.join()) olayEkle({ tip: 'tuslar', basili })
+  sonBasili = basili
 }
 
 async function izlenenCagri($, e, next) {
@@ -128,6 +172,12 @@ export function register(on) {
   on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
     if (!acik || !gorunur) return next(e)
     return bantCiz($, e)
+  })
+
+  on('ui.message', async ($, e, next) => {
+    if (e.element !== 'girdi') return next(e)
+    if (gorunur) girdiIsle(e.data)
+    return {}
   })
 
   on('ui.render', { component: 'Spinner' }, async ($, e, next) => {

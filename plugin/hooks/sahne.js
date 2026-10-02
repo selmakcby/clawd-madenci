@@ -1,14 +1,15 @@
 // Clawd Madenci — sahne simülasyonu. Saf: durum + olay → yeni durum. $ kullanmaz.
 
-import { BLOK, anahtar, blokAl, parcaRengi, h2, RENK } from './dunya.js'
+import { BLOK, anahtar, blokAl, parcaRengi, RENK } from './dunya.js'
+import { CLAWD_G, parcaSac, parcaAdim, yerCekimi, yerde } from './fizik.js'
+import { oyuncuOlayi, oyuncuAdim, OYUNCU_OLAYLARI } from './oyuncu.js'
 import { DUSUNUYOR_METNI, HATA_METNI, BITTI_METNI } from './metin.js'
 
-export const CLAWD_G = 10 // Clawd genişliği (kollar dahil)
+export { CLAWD_G }
 const INSA_ARALIK = 5
 const INSA_YUKSEKLIK = 2
 const FITIL_KARE = 12
 const KACIS_KARE = 24
-const EN_COK_PARCA = 80
 const BALON_EN_AZ = 22 // balon en az ~2 sn kalsın: Read gibi araçlar milisaniyede biter
 const SERTLIK = { yaprak: 4, toprak: 6, cim: 6, kutuk: 9, tahta: 8, tas: 10, komur: 11, demir: 13, altin: 13, kizil: 12, elmas: 16, tnt: 1 }
 
@@ -18,17 +19,19 @@ export function yeniSahne() {
     degisen: {}, parca: [], sayac: 0,
     mod: 'yuru', modKare: 0, eylem: 'dusun', balon: DUSUNUYOR_METNI,
     tnt: null, patlama: null, creeper: null, yardimci: 0, balonKare: 0, dusunAt: null,
+    oyuncu: 0, basili: [], yuruKalan: 0, salla: 0,
   }
 }
 
 // ---- Olaylar ----
 export function olayUygula(s, olay) {
   if (s.mod === 'bitti' && olay.tip !== 'bitti' && olay.tip !== 'basla') return s
+  if (OYUNCU_OLAYLARI.has(olay.tip)) return oyuncuOlayi(s, olay)
   if (olay.tip === 'eylem') return eylemBaslat(s, olay)
   if (olay.tip === 'eylemBitti') return { ...s, dusunAt: s.balonKare + BALON_EN_AZ }
   if (olay.tip === 'basla') return s.mod === 'bitti' ? { ...s, mod: 'yuru', modKare: 0, eylem: 'dusun', balon: DUSUNUYOR_METNI } : s
   if (olay.tip === 'ajanBitti') return { ...s, yardimci: Math.max(0, s.yardimci - 1) }
-  if (olay.tip === 'hata') return hataBaslat(s.tnt ? patlat(s) : s)
+  if (olay.tip === 'hata') return hataBaslat({ ...(s.tnt ? patlat(s) : s), oyuncu: 0 })
   if (olay.tip === 'bitti') return { ...s, mod: 'bitti', modKare: 0, yon: 1, kaziyor: false, balon: `${BITTI_METNI} · ${s.sayac} blok` }
   return s
 }
@@ -40,9 +43,9 @@ function hataBaslat(s) {
 function eylemBaslat(s, { tur, metin }) {
   const temel = { ...s, eylem: tur, balon: metin, balonKare: s.kare, dusunAt: null }
   if (s.mod === 'kac') return { ...s, eylem: tur }
-  if (tur === 'insa') return { ...temel, mod: 'insa', modKare: 0, kaziyor: false }
+  if (tur === 'insa') return { ...temel, mod: 'insa', modKare: 0, kaziyor: false, oyuncu: 0 }
   if (tur === 'ajan') return { ...temel, yardimci: s.yardimci + 1 }
-  if (tur === 'tnt') return tntKoy(temel)
+  if (tur === 'tnt') return tntKoy({ ...temel, oyuncu: 0 })
   return temel
 }
 
@@ -66,21 +69,6 @@ function tntKoy(s) {
   return { ...s, mod: 'tnt', modKare: 0, kaziyor: false, tnt: { bx, by }, degisen: { ...s.degisen, [anahtar(bx, by)]: 'tnt' } }
 }
 
-// ---- Parçacıklar ----
-function parcaSac(s, cx, cy, renkFn, adet, guc) {
-  const yeni = Array.from({ length: adet }, (_, i) => {
-    const r1 = h2(s.kare * 31 + i, cx), r2 = h2(s.kare * 17 + i, cy + 5)
-    return { x: cx + (r1 - 0.5) * 3, y: cy, vx: (r1 - 0.5) * 2.4 * guc, vy: -(0.6 + r2 * 1.8) * guc, renk: renkFn(i), omur: 7 + Math.floor(r2 * 8) }
-  })
-  return [...s.parca, ...yeni].slice(-EN_COK_PARCA)
-}
-
-function parcaAdim(parca) {
-  return parca
-    .map((p) => ({ ...p, x: p.x + p.vx, y: p.y + p.vy, vy: p.vy + 0.35, omur: p.omur - 1 }))
-    .filter((p) => p.omur > 0 && p.y < 20)
-}
-
 // ---- Blok kırma ----
 function kir(s, bx) {
   const tip = blokAl(s.degisen, bx, -1)
@@ -94,7 +82,7 @@ function yuruAdim(s) {
   const bx = onBx(s)
   const engel = blokAl(s.degisen, bx, -1) || blokAl(s.degisen, bx, -2)
   if (!engel) {
-    const zipla = s.eylem === 'web' && s.zy === 0 && s.kare % 9 === 0
+    const zipla = s.eylem === 'web' && yerde(s) && s.kare % 9 === 0
     return { ...s, x: s.x + 1, kaziyor: false, hasar: 0, ...(zipla ? { vy: 3 } : {}) }
   }
   if (engel === 'tnt' && s.tnt) return { ...s, kaziyor: false }
@@ -145,18 +133,13 @@ function kacAdim(s) {
     const parca = c ? parcaSac(s, c.x + 3, 8, (i) => (i % 2 ? RENK.creeper : RENK.creeperKoyu), 14, 1.2) : s.parca
     return { ...s, mod: 'yuru', modKare: 0, yon: 1, creeper: null, parca, eylem: 'dusun', balon: DUSUNUYOR_METNI }
   }
-  const zipla = s.zy === 0 ? { vy: 2 } : {}
+  const zipla = yerde(s) ? { vy: 2 } : {}
   return { ...s, x: s.x - 2, yon: -1, kaziyor: false, creeper: c && { x: c.x - 1.6, kare: c.kare + 1 }, ...zipla }
 }
 
-function ziplamaAdim(s) {
-  if (s.zy <= 0 && s.vy <= 0) return s.zy === 0 ? s : { ...s, zy: 0, vy: 0 }
-  const zy = s.zy + s.vy
-  return zy <= 0 ? { ...s, zy: 0, vy: 0 } : { ...s, zy, vy: s.vy - 1 }
-}
 
 function balonZamani(s) {
-  if (s.dusunAt === null || s.kare < s.dusunAt || s.mod !== 'yuru') return s
+  if (s.dusunAt === null || s.kare < s.dusunAt || s.mod !== 'yuru' || s.oyuncu > 0) return s
   return { ...s, eylem: 'dusun', balon: DUSUNUYOR_METNI, dusunAt: null }
 }
 
@@ -167,5 +150,7 @@ export function adim(s) {
     ...s, kare: s.kare + 1, modKare: s.modKare + 1, parca: parcaAdim(s.parca),
     patlama: s.patlama && s.patlama.kare < 5 ? { ...s.patlama, kare: s.patlama.kare + 1 } : null,
   }
-  return balonZamani(ziplamaAdim((MOD_ADIMI[s.mod] || yuruAdim)(temel)))
+  const oynuyor = s.oyuncu > 0 && s.mod === 'yuru'
+  const sonraki = oynuyor ? oyuncuAdim(temel) : (MOD_ADIMI[s.mod] || yuruAdim)(temel)
+  return balonZamani(yerCekimi(sonraki))
 }

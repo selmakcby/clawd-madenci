@@ -50,11 +50,19 @@ function onBx(s) {
   return Math.floor((s.x + CLAWD_G) / BLOK)
 }
 
+// Önündeki ilk boş yere (en alçak) TNT koyar; yer yoksa sadece balon değişir
+function tntYeri(s) {
+  const adaylar = [2, 3, 1, 4, 5].map((d) => onBx(s) + d)
+  const bx = adaylar.find((b) => !blokAl(s.degisen, b, -1) || !blokAl(s.degisen, b, -2))
+  if (bx === undefined) return null
+  return { bx, by: blokAl(s.degisen, bx, -1) ? -2 : -1 }
+}
+
 function tntKoy(s) {
   if (s.tnt) return s
-  const bx = onBx(s) + 2
-  const by = blokAl(s.degisen, bx, -1) ? (blokAl(s.degisen, bx, -2) ? null : -2) : -1
-  if (by === null) return s
+  const yer = tntYeri(s)
+  if (!yer) return s
+  const { bx, by } = yer
   return { ...s, mod: 'tnt', modKare: 0, kaziyor: false, tnt: { bx, by }, degisen: { ...s.degisen, [anahtar(bx, by)]: 'tnt' } }
 }
 

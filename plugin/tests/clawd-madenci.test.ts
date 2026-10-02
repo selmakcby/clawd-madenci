@@ -27,7 +27,9 @@ function kur(on: any) {
   on('ui.render', () => ({ type: 'Text', props: {}, children: ['Claude Code çizdi'] }))
   on('turn.start', ($: any, e: any) => ({ turnId: e.turnId }))
   on('turn.complete', () => ({ text: '' }))
-  on('tool.call', ($: any, e: any) => (e.command === 'yanlis' ? { result: 'hata', isError: true } : { result: 'ok' }))
+  on('tool.call', () => ({ result: 'ok' }))
+  on('classic.PostToolUse', () => ({}))
+  on('classic.PostToolUseFailure', () => ({}))
   return { kayit, clock }
 }
 
@@ -83,13 +85,19 @@ test('/clawd kapatır ve kalıcı kaydeder', async ($, on) => {
   expect(await ui.find({ key: 'sahne' })).toBeUndefined()
 })
 
-test('araç çağrısı geçer, sonuç değişmez', async ($, on) => {
-  kur(on)
+test('araç kancaları sahneyi sürer: Bash TNT, hata creeper', async ($, on) => {
+  const { kayit, clock } = kur(on)
   await baslat($)
-  const out: any = await $.tool.call({ tool: 'Bash', command: 'yanlis' })
-  expect(out.isError).toBe(true)
-  const ok: any = await $.tool.call({ tool: 'Read', file_path: '/a/README.md' })
-  expect(ok.result).toBe('ok')
+  const ui = await $.ui.mount({ ...BANT, surface: 'terminal' })
+  await $.tool.call({ tool: 'Bash', command: 'npm test' })
+  await clock.advance(200)
+  const once = kayit.blitler.length
+  await $.classic.PostToolUseFailure({ hook_event_name: 'PostToolUseFailure', tool_name: 'Bash', tool_input: { command: 'npm test' }, error: 'x' })
+  await clock.advance(300)
+  expect(kayit.blitler.length).toBeGreaterThan(once)
+  const ds = await $.ui.mount({ ...BANT, surface: 'desktop' })
+  expect(await ds.find({ type: 'Text', text: /Creeper/ })).toBeDefined()
+  await ui.unmount()
 })
 
 test('balon metinleri Türkçe ekleriyle', () => {

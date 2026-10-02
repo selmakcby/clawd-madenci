@@ -15,8 +15,6 @@ const ANAHTAR = 'sahne'
 let acik = true
 let gorunur = false
 let sahne = yeniSahne()
-let kuyruk = []
-let eylemNo = 0
 let bant = null // { requestId, sutun, satir }
 let cizgi = null // kare zamanlayıcısı
 let kapanis = null
@@ -25,13 +23,11 @@ let girdiSayac = { zipla: 0, kaz: 0, koy: 0 }
 let sonBasili = []
 
 function olayEkle(olay) {
-  kuyruk = [...kuyruk, olay]
+  sahne = olayUygula(sahne, olay)
 }
 
 function kareIlerle() {
-  const olaylar = kuyruk
-  kuyruk = []
-  sahne = adim(olaylar.reduce(olayUygula, sahne))
+  sahne = adim(sahne)
 }
 
 async function kareCiz($) {
@@ -69,7 +65,6 @@ function gizle($) {
   durdur()
   gorunur = false
   bant = null
-  kuyruk = []
   $.ui.invalidate('ui.render')
 }
 
@@ -127,15 +122,24 @@ function girdiIsle(veri) {
   sonBasili = basili
 }
 
-async function izlenenCagri($, e, next) {
+// Ayarlar kancalarının (PreToolUse/PostToolUse) kopyalarını dinleriz: tool.call içinde next()'i
+// beklemek uzun bir Bash boyunca modun saatini ve düğmelerini durduruyor.
+let calisanAjan = 0
+
+// classic.PreToolUse, tool.call ile aynı zarfı taşır: e.tool + argümanlar
+function aracBasladi(e) {
   const eylem = eylemOku(e)
-  const no = ++eylemNo
+  if (eylem.tur === 'ajan') calisanAjan += 1
   olayEkle({ tip: 'eylem', ...eylem })
-  const sonuc = await next(e)
-  if (sonuc?.isError) olayEkle({ tip: 'hata' })
-  else if (no === eylemNo) olayEkle({ tip: 'eylemBitti' })
-  if (eylem.tur === 'ajan') olayEkle({ tip: 'ajanBitti' })
-  return sonuc
+}
+
+function aracBitti(e, hata) {
+  const ajan = eylemOku({ tool: e?.tool_name }).tur === 'ajan'
+  if (ajan && calisanAjan > 0) {
+    calisanAjan -= 1
+    olayEkle({ tip: 'ajanBitti' })
+  }
+  olayEkle({ tip: hata ? 'hata' : 'eylemBitti' })
 }
 
 export function register(on) {
@@ -167,7 +171,20 @@ export function register(on) {
   })
 
   // tool.check'e tepki yok: auto modda her çağrı sınıflandırıcıya gider
-  on('tool.call', async ($, e, next) => (gorunur ? izlenenCagri($, e, next) : next(e)))
+  on('classic.PreToolUse', async ($, e, next) => {
+    if (gorunur) aracBasladi(e)
+    return next(e)
+  })
+
+  on('classic.PostToolUse', async ($, e, next) => {
+    if (gorunur) aracBitti(e, e?.tool_response?.is_error === true || e?.tool_response?.isError === true)
+    return next(e)
+  })
+
+  on('classic.PostToolUseFailure', async ($, e, next) => {
+    if (gorunur) aracBitti(e, true)
+    return next(e)
+  })
 
   on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
     if (!acik || !gorunur) return next(e)

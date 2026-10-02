@@ -5,7 +5,7 @@ export const ZEMIN_Y = 12 // çim yüzeyinin piksel satırı (0 = bandın üstü
 export const BOS = 0x01000000 // terminalin varsayılan rengi
 
 export const RENK = {
-  clawd: 0xd97757, clawdAcik: 0xeb9a7a, clawdKoyu: 0xb35a3e, goz: 0x2b1b17,
+  clawd: 0xd97757, clawdAcik: 0xe38b68, clawdKoyu: 0xb35a3e, goz: 0x2b1b17,
   cim: 0x6aaa3a, cimAcik: 0x8cc84b, cimKoyu: 0x4e8a2b,
   toprak: 0x866043, toprakKoyu: 0x6b4a30, toprakAcik: 0x9c7352,
   tas: 0x7f7f7f, tasKoyu: 0x666666, tasAcik: 0x999999,

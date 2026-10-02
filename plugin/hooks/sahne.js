@@ -28,9 +28,13 @@ export function olayUygula(s, olay) {
   if (olay.tip === 'eylemBitti') return { ...s, dusunAt: s.balonKare + BALON_EN_AZ }
   if (olay.tip === 'basla') return s.mod === 'bitti' ? { ...s, mod: 'yuru', modKare: 0, eylem: 'dusun', balon: DUSUNUYOR_METNI } : s
   if (olay.tip === 'ajanBitti') return { ...s, yardimci: Math.max(0, s.yardimci - 1) }
-  if (olay.tip === 'hata') return { ...s, mod: 'kac', modKare: 0, yon: -1, balon: HATA_METNI, creeper: { x: s.x + 30, kare: 0 }, tnt: null }
+  if (olay.tip === 'hata') return hataBaslat(s.tnt ? patlat(s) : s)
   if (olay.tip === 'bitti') return { ...s, mod: 'bitti', modKare: 0, yon: 1, kaziyor: false, balon: `${BITTI_METNI} · ${s.sayac} blok` }
   return s
+}
+
+function hataBaslat(s) {
+  return { ...s, mod: 'kac', modKare: 0, yon: -1, balon: HATA_METNI, creeper: { x: s.x + 30, kare: 0 } }
 }
 
 function eylemBaslat(s, { tur, metin }) {
@@ -85,7 +89,7 @@ function yuruAdim(s) {
     const zipla = s.eylem === 'web' && s.zy === 0 && s.kare % 9 === 0
     return { ...s, x: s.x + 1, kaziyor: false, hasar: 0, ...(zipla ? { vy: 3 } : {}) }
   }
-  if (engel === 'tnt') return { ...s, kaziyor: false }
+  if (engel === 'tnt' && s.tnt) return { ...s, kaziyor: false }
   const guc = 1 + (s.yardimci > 0 ? 1 : 0)
   const hasar = s.hasar + guc
   const sertlik = SERTLIK[blokAl(s.degisen, bx, -1) || engel] || 10

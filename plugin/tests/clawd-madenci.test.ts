@@ -120,3 +120,17 @@ test('Clawd yürür, blok kırar, TNT sayacı artırır', () => {
   const h = sahneHucreleri(s, 80, 10)
   expect(h.length).toBe(80 * 10 * 3)
 })
+
+test('Bash hata dönerse bekleyen TNT patlar, Clawd takılmaz', () => {
+  let s = yeniSahne()
+  s = olayUygula(s, { tip: 'eylem', tur: 'tnt', metin: 'ls patlatıyor' })
+  expect(s.tnt).not.toBeNull()
+  s = olayUygula(s, { tip: 'hata' })
+  expect(s.tnt).toBeNull()
+  expect(Object.values(s.degisen).includes('tnt')).toBe(false)
+  for (let i = 0; i < 40; i++) s = adim(s)
+  expect(s.mod).toBe('yuru')
+  const x = s.x
+  for (let i = 0; i < 60; i++) s = adim(s)
+  expect(s.x).toBeGreaterThan(x)
+})

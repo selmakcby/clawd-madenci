@@ -1,7 +1,11 @@
 # Clawd Madenci
 
+![Clawd Madenci](ekran/kapak.png)
+
 Claude çalışırken istem satırının hemen üstünde küçük bir piksel Minecraft sahnesi açılır.
 Clawd yürür, önüne çıkan blokları kazmayla kırar; Claude ne yapıyorsa sahne ona döner:
+
+![Claude çalışırken Clawd madende](ekran/demo.gif)
 
 | Claude ne yapıyor | Sahnede |
 |---|---|

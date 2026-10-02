@@ -22,11 +22,16 @@ Zıplayınca gerçek yerçekimiyle bir blok üstüne çıkabilir; kazdığın bl
 Spinner'ın yanında kırılan blok sayacı görünür: `· ⛏ 12 blok`.
 LLM çağırmaz, ağ kullanmaz; arazi tohumlu ve deterministiktir.
 
-## Çalıştırma
+## Kurulum
 
-```bash
-claude --plugin-dir ~/clawd-madenci/plugin
+Claude Code **2.1.287** ya da üstü gerekir (`claude update`). Claude Code'un içinde:
+
 ```
+/plugin marketplace add selmakcby/clawd-madenci
+/plugin install clawd-madenci@clawd-madenci
+```
+
+Kapatıp açmak için `/clawd`. Bu bir [Claude Code mod](https://code.claude.com/docs/en/plugins/mods/overview)'u.
 
 Kalıcı kurulum için: `/plugin marketplace add ~/clawd-madenci` ve `/plugin install clawd-madenci@clawd-madenci`.
 

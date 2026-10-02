@@ -1,6 +1,11 @@
 {
   "name": "clawd-madenci",
-  "owner": { "name": "Selma" },
+  "owner": {
+    "name": "Selma"
+  },
+  "metadata": {
+    "description": "Clawd Madenci: Claude Code için piksel Minecraft modu"
+  },
   "plugins": [
     {
       "name": "clawd-madenci",

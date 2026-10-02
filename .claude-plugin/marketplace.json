@@ -1,0 +1,11 @@
+{
+  "name": "clawd-madenci",
+  "owner": { "name": "Selma" },
+  "plugins": [
+    {
+      "name": "clawd-madenci",
+      "source": "./plugin",
+      "description": "Claude çalışırken istemin üstünde piksel Minecraft sahnesi: Clawd kazar, inşa eder, TNT patlatır"
+    }
+  ]
+}
